@@ -115,6 +115,63 @@ async def test_quality_adj_code_block_and_error_trace() -> None:
     assert adj == 0.80  # 0.50 + 0.30
 
 
+async def test_help_wanted_issue_scores_above_unlabeled(sample_repo: RepoMeta) -> None:
+    """Help-wanted-only issues should outrank otherwise identical unlabeled issues."""
+    repo = RepoMeta(
+        owner="owner",
+        name="repo",
+        language="Python",
+        stars=1000,
+        external_merge_rate=0.10,
+    )
+    base_issue = {
+        "repo": "owner/repo",
+        "number": 1,
+        "title": "fix import sorting",
+        "maintainer_confirmed": False,
+        "has_error_trace": False,
+        "has_code_block": False,
+        "comment_count": 0,
+        "reaction_count": 0,
+    }
+
+    unlabeled = score_issue({**base_issue, "labels": []}, repo)
+    help_wanted = score_issue({**base_issue, "labels": ["help wanted"]}, repo)
+
+    assert help_wanted.score > unlabeled.score
+    assert help_wanted.score == 5.4
+
+
+async def test_contributions_welcome_gets_help_wanted_bonus() -> None:
+    """Contributions-welcome labels should receive the same openness signal."""
+    issue_data = {
+        "labels": ["contributions welcome"],
+        "maintainer_confirmed": False,
+        "has_error_trace": False,
+        "has_code_block": False,
+        "comment_count": 0,
+        "reaction_count": 0,
+    }
+
+    adj = _compute_quality_adj(issue_data)
+    assert adj == 0.40
+
+
+async def test_good_first_issue_bonus_remains_stronger_than_help_wanted() -> None:
+    """Good first issue should keep the original +0.80 bonus without double-counting."""
+    issue_data = {
+        "labels": ["good first issue", "help wanted"],
+        "maintainer_confirmed": False,
+        "has_error_trace": False,
+        "has_code_block": False,
+        "comment_count": 0,
+        "reaction_count": 0,
+    }
+
+    adj = _compute_quality_adj(issue_data)
+    assert adj == 0.80
+
+
 # ---------------------------------------------------------------------------
 # Repo scoring
 # ---------------------------------------------------------------------------

@@ -34,8 +34,8 @@ def score_issue(
     - ``label_adj`` [-1.5, +1.0]: Label-level merge rate from outcomes.
     - ``quality_adj`` [0.0, +5.3]: Maintainer confirmed (+1.50), error trace
       (+0.50), regression label (+0.50), cleanup/removal (+2.00),
-      typo/docs (+1.00), good first issue (+0.80), code block (+0.30),
-      comment count 1-5 (+0.40), reactions >=5 (+0.10).
+      typo/docs (+1.00), good first issue (+0.80), help wanted (+0.40),
+      code block (+0.30), comment count 1-5 (+0.40), reactions >=5 (+0.10).
     - ``lesson_adj`` [-3.0, 0.0]: Negative lessons for this repo from memory.
     - ``implementability_adj`` [-3.5, 0.0]: Penalizes feature requests (-2.0),
       investigation tasks (-1.5), discussions without bug label (-1.0),
@@ -248,6 +248,17 @@ def _compute_quality_adj(issue_data: dict[str, Any]) -> float:
     }
     if labels_lower & _GFI_LABELS:
         adj += 0.80
+
+    # "help wanted" is a primary search target. It signals maintainer openness
+    # to outside contributions, but is weaker than a scoped good-first label.
+    _HELP_WANTED_LABELS = {
+        "help wanted",
+        "help-wanted",
+        "contributions welcome",
+        "contributions-welcome",
+    }
+    if not labels_lower & _GFI_LABELS and labels_lower & _HELP_WANTED_LABELS:
+        adj += 0.40
 
     # Code block in body: concrete example
     if issue_data.get("has_code_block"):
