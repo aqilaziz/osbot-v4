@@ -137,24 +137,29 @@ async def test_help_wanted_issue_scores_above_unlabeled(sample_repo: RepoMeta) -
 
     unlabeled = score_issue({**base_issue, "labels": []}, repo)
     help_wanted = score_issue({**base_issue, "labels": ["help wanted"]}, repo)
+    help_wanted_hyphenated = score_issue(
+        {**base_issue, "labels": ["help-wanted"]}, repo
+    )
 
     assert help_wanted.score > unlabeled.score
     assert help_wanted.score == 5.4
+    assert help_wanted_hyphenated.score == help_wanted.score
 
 
 async def test_contributions_welcome_gets_help_wanted_bonus() -> None:
     """Contributions-welcome labels should receive the same openness signal."""
-    issue_data = {
-        "labels": ["contributions welcome"],
-        "maintainer_confirmed": False,
-        "has_error_trace": False,
-        "has_code_block": False,
-        "comment_count": 0,
-        "reaction_count": 0,
-    }
+    for label in ("contributions welcome", "contributions-welcome"):
+        issue_data = {
+            "labels": [label],
+            "maintainer_confirmed": False,
+            "has_error_trace": False,
+            "has_code_block": False,
+            "comment_count": 0,
+            "reaction_count": 0,
+        }
 
-    adj = _compute_quality_adj(issue_data)
-    assert adj == 0.40
+        adj = _compute_quality_adj(issue_data)
+        assert adj == 0.40
 
 
 async def test_good_first_issue_bonus_remains_stronger_than_help_wanted() -> None:
